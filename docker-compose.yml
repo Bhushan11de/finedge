@@ -8,11 +8,12 @@ services:
       - 3306:3306
     environment:
       MYSQL_ROOT_PASSWORD: 1999
-      MYSQL_DATABASE: stockman  # Ensure the database name matches the URL in the application
+      MYSQL_DATABASE: stockman
     networks:
       - bhushan
     volumes:
-      - mysql-data:/var/lib/mysql  # Keeps MySQL data persistent across container restarts
+      - mysql-data:/var/lib/mysql
+    restart: always  # ✅ Ensure correct indentation
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p1999"]
       interval: 10s
@@ -24,21 +25,23 @@ services:
     container_name: finedge
     image: bhushanshub/finedge:latest
     ports:
-      - 8080:8080
+      - 8088:8088
     environment:
       SPRING_DATASOURCE_USERNAME: root
-      SPRING_DATASOURCE_URL: "jdbc:mysql://mysql:3306/stockman"  # URL should match MySQL container name
+      SPRING_DATASOURCE_URL: "jdbc:mysql://mysql:3306/stockman"
       SPRING_DATASOURCE_PASSWORD: 1999
     networks:
       - bhushan
     depends_on:
-      - mysql  # Ensures MySQL starts before finedge
-    restart: on-failure  # Only restart on failure, instead of always
+      mysql:
+        condition: service_healthy  # ✅ Ensures MySQL is ready before finedge starts
+    restart: always
     volumes:
-      - mysql-data:/var/lib/mysql  # Shared volume to persist data
+      - mysql-data:/var/lib/mysql
 
 networks:
   bhushan:
 
 volumes:
   mysql-data:
+

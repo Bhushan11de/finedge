@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { db } from "../../firebaseconfig"; // Adjust the path as needed
+import { db } from "@/src/firebaseconfig"; // Adjust the path as needed
 import { doc, updateDoc, getDoc } from "firebase/firestore";
 import styles from "./sellstockpopup.module.css";
 

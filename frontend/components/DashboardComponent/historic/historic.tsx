@@ -1,204 +1,214 @@
 import React, { useState, useEffect, useRef } from "react";
-import { getAuth, onAuthStateChanged } from "firebase/auth";
-import { collection, getDocs } from "firebase/firestore";
-import { db } from "../../firebaseconfig"; // Adjust the path as needed
+import { useAuth } from "../../context/AuthContext";
+import { collection, query, where, getDocs } from "firebase/firestore";
+import { db } from "../../firebaseconfig";
 import Chart from "chart.js/auto";
 import styles from "./historic.module.css";
 
+interface HistoricData {
+  dates: string[];
+  prices: number[];
+}
+
 const HistoricData: React.FC = () => {
-  const [userEmail, setUserEmail] = useState<string | null>(null);
-  const [stocks, setStocks] = useState<{ symbol: string; quantity: number }[]>(
-    []
-  );
-  const [selectedStock, setSelectedStock] = useState<string | null>(null);
+  const { currentUser } = useAuth();
+  const [stocks, setStocks] = useState<{ symbol: string; quantity: number }[]>([]);
+  const [selectedStock, setSelectedStock] = useState<string>("");
   const [timeRange, setTimeRange] = useState<string>("1mo");
-  const [historicData, setHistoricData] = useState<{
-    dates: string[];
-    prices: number[];
-  } | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
+  const [historicData, setHistoricData] = useState<HistoricData | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string>("");
   const chartRef = useRef<HTMLCanvasElement | null>(null);
   const chartInstanceRef = useRef<Chart | null>(null);
 
   useEffect(() => {
-    const auth = getAuth();
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user && user.email) {
-        setUserEmail(user.email);
-        fetchUserStocks(user.email);
-      } else {
-        setUserEmail(null);
+    const fetchUserStocks = async () => {
+      if (!currentUser) return;
+      
+      try {
+        const stocksQuery = query(
+          collection(db, "users", currentUser.uid, "stocks"),
+          where("quantity", ">", 0)
+        );
+        
+        const snapshot = await getDocs(stocksQuery);
+        const stocksData = snapshot.docs.map(doc => ({
+          symbol: doc.id,
+          quantity: doc.data().quantity
+        }));
+        
+        setStocks(stocksData);
+        if (stocksData.length > 0) setSelectedStock(stocksData[0].symbol);
+      } catch (err) {
+        setError("Failed to load portfolio");
+        console.error("Error fetching stocks:", err);
       }
-    });
+    };
 
-    return () => unsubscribe();
-  }, []);
-
-  const fetchUserStocks = async (email: string) => {
-    try {
-      const stocksCollection = collection(db, "userstocks", email, "stocks");
-      const stocksSnapshot = await getDocs(stocksCollection);
-      const stocksList = stocksSnapshot.docs.map(
-        (doc) => doc.data() as { symbol: string; quantity: number }
-      );
-      setStocks(stocksList);
-    } catch (error) {
-      console.error("Error fetching user stocks:", error);
-    }
-  };
+    fetchUserStocks();
+  }, [currentUser]);
 
   const handleFetchHistoricData = async () => {
-    if (selectedStock) {
-      setError(null);
-      setIsLoading(true);
-      try {
-        const response = await fetch(
-          `http://localhost:5000/historic?symbol=${selectedStock}&range=${timeRange}`
-        );
-        if (!response.ok) {
-          throw new Error("Failed to fetch historic data. Please try again.");
-        }
-        const data = await response.json();
-        const prices = data.prices.map((priceArray: number[]) => priceArray[0]); // Flatten the prices array
-        setHistoricData({
-          dates: data.dates,
-          prices: prices,
-        });
-      } catch (error: any) {
-        console.error("Error fetching historic data:", error);
-        setError(error.message);
-      } finally {
-        setIsLoading(false);
+    if (!selectedStock) {
+      setError("Please select a stock");
+      return;
+    }
+
+    setIsLoading(true);
+    setError("");
+
+    try {
+      const response = await fetch(
+        `http://localhost:5000/historic?symbol=${selectedStock}&range=${timeRange}`
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
+
+      const data = await response.json();
+      setHistoricData({
+        dates: data.dates,
+        prices: data.prices.map((priceArray: number[]) => priceArray[0])
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to fetch data");
+      console.error("Historic data error:", err);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    if (historicData && chartRef.current) {
-      displayChart(historicData);
-    }
-  }, [historicData]);
+    const initChart = () => {
+      if (!historicData || !chartRef.current) return;
 
-  const displayChart = (data: { dates: string[]; prices: number[] }) => {
-    const ctx = chartRef.current?.getContext("2d");
-    if (ctx) {
+      const ctx = chartRef.current.getContext("2d");
+      if (!ctx) return;
+
       if (chartInstanceRef.current) {
         chartInstanceRef.current.destroy();
       }
 
-      const minPrice = Math.min(...data.prices);
-      const maxPrice = Math.max(...data.prices);
-
       chartInstanceRef.current = new Chart(ctx, {
         type: "line",
         data: {
-          labels: data.dates,
-          datasets: [
-            {
-              label: "Historic Prices",
-              data: data.prices,
-              borderColor: "rgba(75, 192, 192, 1)",
-              backgroundColor: "rgba(75, 192, 192, 0.2)",
-              borderWidth: 2,
-              tension: 0.3, // Smooth curve
-              pointRadius: 2,
-            },
-          ],
+          labels: historicData.dates,
+          datasets: [{
+            label: "Historic Prices",
+            data: historicData.prices,
+            borderColor: "#3b82f6",
+            backgroundColor: "rgba(59, 130, 246, 0.1)",
+            borderWidth: 2,
+            pointRadius: 2,
+            tension: 0.3,
+            fill: true
+          }]
         },
         options: {
           responsive: true,
+          maintainAspectRatio: false,
           plugins: {
-            legend: {
-              display: true,
-              position: "top",
-            },
+            legend: { position: "top" },
             tooltip: {
               mode: "index",
               intersect: false,
-            },
-          },
-          interaction: {
-            mode: "nearest",
-            axis: "x",
-            intersect: false,
+              callbacks: {
+                label: (context) => 
+                  `$${context.parsed.y.toFixed(2)}`
+              }
+            }
           },
           scales: {
             x: {
-              title: {
-                display: true,
-                text: "Date",
-              },
-              ticks: {
-                autoSkip: true,
-                maxTicksLimit: 12, // Limit ticks for better readability
-              },
+              grid: { display: false },
+              title: { display: true, text: "Date" },
+              ticks: { maxTicksLimit: 10 }
             },
             y: {
-              title: {
-                display: true,
-                text: "Price (USD)",
-              },
-              min: minPrice,
-              max: maxPrice,
-              ticks: {
-                callback: (value: any) => `$${value.toFixed(2)}`,
-              },
-            },
-          },
-        },
+              title: { display: true, text: "Price (USD)" },
+              ticks: { 
+                callback: (value) => `$${Number(value).toFixed(2)}` 
+              }
+            }
+          }
+        }
       });
-    }
-  };
+    };
+
+    initChart();
+    return () => {
+      if (chartInstanceRef.current) {
+        chartInstanceRef.current.destroy();
+      }
+    };
+  }, [historicData]);
 
   return (
     <div className={styles.container}>
-      <h1>Historic Stock Data</h1>
+      <h1 className={styles.title}>Historical Stock Analysis</h1>
+      
       <div className={styles.controls}>
-        <select
-          className={styles.select}
-          value={selectedStock || ""}
-          onChange={(e) => setSelectedStock(e.target.value)}
-        >
-          <option value="" disabled>
-            Select a stock
-          </option>
-          {stocks.map((stock) => (
-            <option key={stock.symbol} value={stock.symbol}>
-              {stock.symbol}
-            </option>
-          ))}
-        </select>
-        <select
-          className={styles.select}
-          value={timeRange}
-          onChange={(e) => setTimeRange(e.target.value)}
-        >
-          <option value="5d">5 Days</option>
-          <option value="1mo">1 Month</option>
-          <option value="6mo">6 Months</option>
-          <option value="1y">1 Year</option>
-          <option value="5y">5 Year</option>
-        </select>
+        <div className={styles.selectGroup}>
+          <select
+            className={styles.select}
+            value={selectedStock}
+            onChange={(e) => setSelectedStock(e.target.value)}
+            disabled={stocks.length === 0}
+          >
+            {stocks.length === 0 ? (
+              <option value="">No stocks available</option>
+            ) : (
+              <>
+                <option value="">Select a stock</option>
+                {stocks.map((stock) => (
+                  <option key={stock.symbol} value={stock.symbol}>
+                    {stock.symbol}
+                  </option>
+                ))}
+              </>
+            )}
+          </select>
+          
+          <select
+            className={styles.select}
+            value={timeRange}
+            onChange={(e) => setTimeRange(e.target.value)}
+          >
+            {["5d", "1mo", "6mo", "1y", "5y"].map((range) => (
+              <option key={range} value={range}>
+                {{
+                  '5d': '5 Days',
+                  '1mo': '1 Month',
+                  '6mo': '6 Months',
+                  '1y': '1 Year',
+                  '5y': '5 Years'
+                }[range]}
+              </option>
+            ))}
+          </select>
+        </div>
+
         <button
           className={styles.button}
           onClick={handleFetchHistoricData}
-          disabled={isLoading}
+          disabled={isLoading || !selectedStock}
         >
-          {isLoading ? "Loading..." : "Fetch Data"}
+          {isLoading ? (
+            <span className={styles.loading}>
+              <span className={styles.spinner} /> Loading...
+            </span>
+          ) : (
+            "Analyze History"
+          )}
         </button>
       </div>
-      {historicData && (
-        <div className={styles["canvas-container"]}>
-          <canvas
-            ref={chartRef}
-            id="historicChart"
-            width="400"
-            height="200"
-          ></canvas>
-        </div>
-      )}
-      {error && <p className={styles.error}>{error}</p>}
+
+      {error && <div className={styles.error}>{error}</div>}
+
+      <div className={styles.chartContainer}>
+        <canvas ref={chartRef} className={styles.chart} />
+      </div>
     </div>
   );
 };

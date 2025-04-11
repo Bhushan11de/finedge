@@ -1,56 +1,53 @@
 import React from "react";
-import styles from "./sidebar.module.css";
-import logoImage1 from "../assets/image 4.png";
-import logoImage2 from "../assets/image 5.png";
-import logoImage3 from "../assets/image 6.png";
-import logoImage4 from "../assets/image 7.png";
-import logoImage5 from "../assets/image 8.png";
 import { useRouter } from "next/router";
+import Image from "next/image";
+import styles from "./sidebar.module.css";
+
+// Import SVG icons (recommended to use SVG files instead of PNG)
+import PortfolioIcon from "../assets/portfolio.svg";
+import ForecastIcon from "../assets/chart.svg";
+import RecommendIcon from "../assets/recommend.svg";
+import RealtimeIcon from "../assets/live.svg";
+import HistoryIcon from "../assets/history.svg";
 
 const Sidebar: React.FC = () => {
   const router = useRouter();
+  
+  const menuItems = [
+    { path: "/dashboard", icon: PortfolioIcon, label: "Portfolio" },
+    { path: "/forecast", icon: ForecastIcon, label: "Forecast" },
+    { path: "/recommend", icon: RecommendIcon, label: "Recommend" },
+    { path: "/realtime", icon: RealtimeIcon, label: "Real-Time" },
+    { path: "/historic", icon: HistoryIcon, label: "History" }
+  ];
+
   const handleNavigation = (path: string) => {
     router.push(path);
   };
 
   return (
-    <div className={styles.sidebar}>
-      <div
-        className={`${styles.menuItem} ${styles.active}`}
-        onClick={() => handleNavigation("/dashboard")}
-      >
-        <img className={styles.logoImage} src={logoImage1.src} alt="Logo" />
-        <span className={styles.menuText}>Portfolio</span>
-      </div>
-      <div
-        className={styles.menuItem}
-        onClick={() => handleNavigation("/forecast")}
-      >
-        <img className={styles.logoImage} src={logoImage2.src} alt="Logo" />
-        <span className={styles.menuText}>Forecasting</span>
-      </div>
-      <div
-        className={styles.menuItem}
-        onClick={() => handleNavigation("/recommend")}
-      >
-        <img className={styles.logoImage} src={logoImage3.src} alt="Logo" />
-        <span className={styles.menuText}>Recommend</span>
-      </div>
-      <div
-        className={styles.menuItem}
-        onClick={() => handleNavigation("/realtime")}
-      >
-        <img className={styles.logoImage} src={logoImage4.src} alt="Logo" />
-        <span className={styles.menuText}>Real-Time</span>
-      </div>
-      <div
-        className={styles.menuItem}
-        onClick={() => handleNavigation("/historic")}
-      >
-        <img className={styles.logoImage} src={logoImage5.src} alt="Logo" />
-        <span className={styles.menuText}>Historic</span>
-      </div>
-    </div>
+    <nav className={styles.sidebar} aria-label="Main navigation">
+      {menuItems.map((item) => (
+        <button
+          key={item.path}
+          className={`${styles.menuItem} ${
+            router.pathname === item.path ? styles.active : ""
+          }`}
+          onClick={() => handleNavigation(item.path)}
+          aria-current={router.pathname === item.path ? "page" : undefined}
+        >
+          <Image 
+            src={item.icon} 
+            alt="" 
+            width={24} 
+            height={24} 
+            className={styles.icon}
+            aria-hidden="true"
+          />
+          <span className={styles.menuText}>{item.label}</span>
+        </button>
+      ))}
+    </nav>
   );
 };
 

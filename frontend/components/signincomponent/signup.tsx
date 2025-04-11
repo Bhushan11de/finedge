@@ -1,9 +1,9 @@
 import React, { useState } from "react";
-import { auth, db } from "../firebaseconfig"; // Adjust the path as needed
+import { auth, db } from "../firebaseconfig";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
 import { useRouter } from "next/router";
-import styles from "./signin.module.css"; // Reuse the CSS Module from signin
+import styles from "./signin.module.css";
 
 const Signup: React.FC = () => {
   const [name, setName] = useState("");
@@ -15,9 +15,23 @@ const Signup: React.FC = () => {
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate inputs
+    if (!name || !email || !password) {
+      setError("Please fill all fields");
+      return;
+    }
+    
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters");
+      return;
+    }
+
     setLoading(true);
     setError("");
+
     try {
+      // Create user with email and password
       const userCredential = await createUserWithEmailAndPassword(
         auth,
         email,
@@ -25,17 +39,36 @@ const Signup: React.FC = () => {
       );
       const user = userCredential.user;
 
-      // Store user data in Firestore
+      // Store additional user data in Firestore
       await setDoc(doc(db, "users", user.uid), {
-        name: name,
-        email: email,
+        name: name.trim(),
+        email: email.toLowerCase().trim(),
         uid: user.uid,
+        createdAt: new Date().toISOString()
       });
 
-      setLoading(false);
-      router.push("/signupnext"); // Redirect to /signupnext page after successful sign-up
-    } catch (err) {
-      setError("Failed to sign up. Please check your credentials.");
+      // Send email verification (optional)
+      // await sendEmailVerification(user);
+
+      router.push("/signupnext");
+    } catch (err: any) {
+      console.error("Signup error:", err);
+      
+      // More specific error messages
+      switch (err.code) {
+        case "auth/email-already-in-use":
+          setError("Email already in use");
+          break;
+        case "auth/invalid-email":
+          setError("Invalid email address");
+          break;
+        case "auth/weak-password":
+          setError("Password should be at least 6 characters");
+          break;
+        default:
+          setError("Failed to sign up. Please try again.");
+      }
+    } finally {
       setLoading(false);
     }
   };
@@ -63,6 +96,7 @@ const Signup: React.FC = () => {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required
+                maxLength={50}
               />
             </div>
 
@@ -91,29 +125,39 @@ const Signup: React.FC = () => {
                 id="password"
                 name="password"
                 className={styles.passwordinput}
-                placeholder="Enter your password"
+                placeholder="Enter your password (min 6 characters)"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                minLength={6}
               />
             </div>
+
+            {error && (
+              <p className={styles.errorMessage} style={{ color: "red", margin: "10px 0" }}>
+                {error}
+              </p>
+            )}
+
             <p className={styles.createaccount}>
               Already have an account?{" "}
-              <div
+              <span
                 className={styles.signuproute}
                 onClick={() => handleNavigation("/signin")}
+                style={{ cursor: "pointer" }}
               >
                 Sign In
-              </div>
+              </span>
             </p>
+
             <button
               className={styles.buttontext}
               type="submit"
               disabled={loading}
+              style={{ opacity: loading ? 0.7 : 1 }}
             >
               {loading ? "Signing Up..." : "Sign Up"}
             </button>
-            {error && <p style={{ color: "red" }}>{error}</p>}
           </form>
         </div>
       </div>

@@ -1,9 +1,8 @@
-Flask
-flask-cors
-yfinance
-pandas
-numpy
-scikit-learn
-tensorflow
-stable-baselines3
-gym
+flask==3.0.2
+flask-cors==4.0.1
+yfinance==0.2.37
+numpy==1.26.4
+scikit-learn==1.4.0
+statsmodels==0.14.1
+pandas==2.2.1
+gunicorn==21.2.0

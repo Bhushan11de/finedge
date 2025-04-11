@@ -1,89 +1,146 @@
-/* recommendations.module.css */
 .container {
   max-width: 1200px;
   margin: 0 auto;
   padding: 2rem;
+  font-family: 'Segoe UI', sans-serif;
+}
+
+.title {
+  text-align: center;
+  color: #2c3e50;
+  margin-bottom: 2rem;
+  font-size: 2rem;
 }
 
 .error {
   color: #e53e3e;
-  padding: 0.75rem;
-  margin-bottom: 1rem;
-  background-color: #fff5f5;
-  border-radius: 0.25rem;
+  padding: 1rem;
+  margin: 1rem 0;
+  background: #fef2f2;
+  border-radius: 8px;
   border-left: 4px solid #e53e3e;
 }
 
 .button {
-  background-color: #4299e1;
+  display: block;
+  width: 100%;
+  max-width: 300px;
+  margin: 2rem auto;
+  padding: 1rem;
+  background: #3b82f6;
   color: white;
-  padding: 0.75rem 1.5rem;
   border: none;
-  border-radius: 0.25rem;
-  font-weight: 600;
+  border-radius: 8px;
+  font-size: 1.1rem;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: all 0.3s ease;
 }
 
-.button:hover {
-  background-color: #3182ce;
+.button:hover:not(:disabled) {
+  background: #2563eb;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 .button:disabled {
-  background-color: #a0aec0;
+  background: #94a3b8;
   cursor: not-allowed;
 }
 
-.recommendations {
-  margin-top: 2rem;
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
 }
 
-.filters {
+.spinner {
+  width: 1.2rem;
+  height: 1.2rem;
+  border: 2px solid #fff;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.recommendations {
+  margin-top: 3rem;
+  background: white;
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+.subtitle {
+  color: #475569;
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.filterContainer {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
 }
 
 .dayFilters, .agentFilters {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
+  justify-content: center;
 }
 
 .dayButton, .filterButton {
   padding: 0.5rem 1rem;
-  border: 1px solid #c30c92;
-  border-radius: 0.25rem;
-  background-color: #04131d;
+  border: none;
+  border-radius: 6px;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
 }
 
-.activeDay, .activeFilter {
-  background-color: #4299e1;
+.dayButton {
+  background: #e2e8f0;
+  color: #475569;
+}
+
+.dayButton:hover, .activeDay {
+  background: #3b82f6;
   color: white;
-  border-color: #4299e1;
 }
 
-.conservative {
-  border-left: 4px solid #38a169;
+.filterButton {
+  background: #f1f5f9;
+  color: #475569;
 }
 
-.moderate {
-  border-left: 4px solid #d69e2e;
+.filterButton:hover {
+  transform: translateY(-1px);
 }
 
-.aggressive {
-  border-left: 4px solid #e53e3e;
+.conservative { background: #34d39920; color: #34d399; }
+.moderate { background: #fbbf2420; color: #f59e0b; }
+.aggressive { background: #ef444420; color: #ef4444; }
+
+.activeFilter {
+  font-weight: 600;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.tableWrapper {
+  overflow-x: auto;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
 }
 
 .table {
   width: 100%;
   border-collapse: collapse;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-  border-radius: 0.5rem;
-  overflow: hidden;
+  background: white;
 }
 
 .table th, .table td {
@@ -93,48 +150,70 @@
 }
 
 .table th {
-  background-color: #001d30;
+  background: #f8fafc;
+  color: #64748b;
   font-weight: 600;
 }
 
-.table tr:last-child td {
-  border-bottom: none;
+.action {
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
-.sellAction {
-  color: #e53e3e;
-  font-weight: 600;
+.buy { color: #10b981; }
+.sell { color: #ef4444; }
+.hold { color: #3b82f6; }
+
+.agentTag {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 500;
 }
 
-.holdAction {
-  color: #3182ce;
-  font-weight: 600;
+.confidenceBar {
+  position: relative;
+  height: 24px;
+  background: #f1f5f9;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.confidenceFill {
+  height: 100%;
+  background: #3b82f6;
+  transition: width 0.3s ease;
+}
+
+.confidenceText {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: white;
+  font-size: 0.8rem;
+  font-weight: 500;
 }
 
 .noData {
   text-align: center;
-  color: #6489ba;
   padding: 2rem;
-}
-.container {
-  max-width: 1200px;
-  margin: auto;
+  color: #94a3b8;
 }
 
-.error {
-  color: red;
-}
+@media (max-width: 768px) {
+  .container {
+    padding: 1rem;
+  }
 
-.button {
-  background-color: #4caf50;
-}
+  .table th, .table td {
+    padding: 0.75rem;
+    font-size: 0.9rem;
+  }
 
-.filters .filterButton.activeFilter,
-.filters .dayButton.activeDay {
-  background-color: #2196f3;
-}
-
-.table th,
-.table td {
-  padding: .5rem;
+  .agentTag {
+    font-size: 0.7rem;
+  }
 }

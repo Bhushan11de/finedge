@@ -1,102 +1,130 @@
 import React, { useState, useEffect } from "react";
-import { getAuth, onAuthStateChanged } from "firebase/auth";
-import { collection, getDocs } from "firebase/firestore";
-import { db } from "../../firebaseconfig"; // Adjust the path as needed
+import { useAuth } from "../../context/AuthContext";
+import { collection, query, where, onSnapshot } from "firebase/firestore";
+import { db } from "../../firebaseconfig";
 import styles from "./realtime.module.css";
 
+interface Stock {
+  symbol: string;
+  quantity: number;
+}
+
+interface RealTimeData {
+  symbol: string;
+  price: number;
+  change?: number;
+}
+
 const RealTimeData: React.FC = () => {
-  const [userEmail, setUserEmail] = useState<string | null>(null);
-  const [stocks, setStocks] = useState<{ symbol: string; quantity: number }[]>(
-    []
-  );
-  const [realTimeData, setRealTimeData] = useState<
-    { symbol: string; price: number }[]
-  >([]);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const { currentUser } = useAuth();
+  const [stocks, setStocks] = useState<Stock[]>([]);
+  const [realTimeData, setRealTimeData] = useState<RealTimeData[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    const auth = getAuth();
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user && user.email) {
-        setUserEmail(user.email);
-        fetchUserStocks(user.email);
-      } else {
-        setUserEmail(null);
+    const fetchUserStocks = async () => {
+      if (!currentUser) return;
+
+      try {
+        const stocksQuery = query(
+          collection(db, "users", currentUser.uid, "stocks"),
+          where("quantity", ">", 0)
+        );
+
+        const unsubscribe = onSnapshot(stocksQuery, (snapshot) => {
+          const stocksData = snapshot.docs.map(doc => ({
+            symbol: doc.id,
+            quantity: doc.data().quantity
+          }));
+          setStocks(stocksData);
+          fetchRealTimeData(stocksData);
+        });
+
+        return unsubscribe;
+      } catch (err) {
+        setError("Failed to load portfolio");
+        console.error("Error fetching stocks:", err);
       }
-    });
+    };
 
-    return () => unsubscribe();
-  }, []);
+    fetchUserStocks();
+  }, [currentUser]);
 
-  const fetchUserStocks = async (email: string) => {
+  const fetchRealTimeData = async (stocks: Stock[]) => {
     try {
-      const stocksCollection = collection(db, "userstocks", email, "stocks");
-      const stocksSnapshot = await getDocs(stocksCollection);
-      const stocksList = stocksSnapshot.docs.map(
-        (doc) => doc.data() as { symbol: string; quantity: number }
-      );
-      setStocks(stocksList);
-      fetchRealTimeData(stocksList);
-    } catch (error) {
-      console.error("Error fetching user stocks:", error);
-    }
-  };
-
-  const fetchRealTimeData = async (
-    stocks: { symbol: string; quantity: number }[]
-  ) => {
-    setIsLoading(true);
-    try {
-      const realTimeDataPromises = stocks.map(async (stock) => {
+      setIsLoading(true);
+      const dataPromises = stocks.map(async (stock) => {
         const response = await fetch(
           `http://localhost:3001/api/stock?symbol=${stock.symbol}`
         );
+        if (!response.ok) throw new Error("Price fetch failed");
         const data = await response.json();
-        return { symbol: stock.symbol, price: data.regularMarketPrice };
+        return {
+          symbol: stock.symbol,
+          price: data.regularMarketPrice,
+          change: data.regularMarketChangePercent
+        };
       });
 
-      const realTimeData = await Promise.all(realTimeDataPromises);
+      const realTimeData = await Promise.all(dataPromises);
       setRealTimeData(realTimeData);
-    } catch (error) {
-      console.error("Error fetching real-time data:", error);
+      setError("");
+    } catch (err) {
+      setError("Failed to fetch real-time data");
+      console.error("Real-time data error:", err);
     } finally {
       setIsLoading(false);
     }
   };
 
+  const getChangeColor = (change?: number) => {
+    if (!change) return styles.neutral;
+    return change >= 0 ? styles.positive : styles.negative;
+  };
+
   return (
     <div className={styles.container}>
-      <h1>Real-Time Stock Data</h1>
+      <h1 className={styles.title}>Real-Time Portfolio</h1>
+      {error && <div className={styles.error}>{error}</div>}
+
       {isLoading ? (
-        <p>Loading...</p>
+        <div className={styles.loading}>
+          <div className={styles.spinner} />
+          Loading market data...
+        </div>
       ) : (
-        <table className={styles.table}>
-          <thead>
-            <tr>
-              <th>Symbol</th>
-              <th>Quantity</th>
-              <th>Current Price</th>
-            </tr>
-          </thead>
-          <tbody>
-            {stocks.map((stock) => {
-              const realTimeStock = realTimeData.find(
-                (data) => data.symbol === stock.symbol
-              );
-              return (
-                <tr key={stock.symbol}>
-                  <td>{stock.symbol}</td>
-                  <td>{stock.quantity}</td>
-                  <td>
-                    {realTimeStock
-                      ? `$${realTimeStock.price.toFixed(2)}`
-                      : "N/A"}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+        <div className={styles.tableContainer}>
+          <table className={styles.table}>
+            <thead>
+              <tr>
+                <th>Symbol</th>
+                <th>Shares</th>
+                <th>Price</th>
+                <th>24h Change</th>
+                <th>Value</th>
+              </tr>
+            </thead>
+            <tbody>
+              {stocks.map((stock) => {
+                const rtData = realTimeData.find(d => d.symbol === stock.symbol);
+                const value = rtData ? stock.quantity * rtData.price : 0;
+                
+                return (
+                  <tr key={stock.symbol}>
+                    <td>{stock.symbol}</td>
+                    <td>{stock.quantity}</td>
+                    <td>${rtData?.price.toFixed(2) || "N/A"}</td>
+                    <td className={getChangeColor(rtData?.change)}>
+                      {rtData?.change ? `${rtData.change.toFixed(2)}%` : "-"}
+                    </td>
+                    <td>${value.toFixed(2)}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       )}
     </div>
   );

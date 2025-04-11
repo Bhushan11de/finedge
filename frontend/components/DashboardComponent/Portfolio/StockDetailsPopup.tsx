@@ -1,9 +1,15 @@
 import React from "react";
 import styles from "./stockdetailspopup.module.css";
 
+interface Stock {
+  symbol: string;
+  quantity: number;
+  price: number;
+}
+
 interface StockDetailsPopupProps {
   onClose: () => void;
-  stocks: { symbol: string; quantity: number; price?: number }[];
+  stocks: Stock[];
   totalValue: number;
 }
 
@@ -15,39 +21,50 @@ const StockDetailsPopup: React.FC<StockDetailsPopupProps> = ({
   return (
     <div className={styles.popup}>
       <div className={styles.popupContent}>
-        <button onClick={onClose} className={styles.closeButton}>
-          X
+        <button 
+          onClick={onClose} 
+          className={styles.closeButton}
+          aria-label="Close details"
+        >
+          ×
         </button>
-        <h2>Stock Details</h2>
-        <table className={styles.stockTable}>
-          <thead>
-            <tr>
-              <th>Symbol</th>
-              <th>Quantity</th>
-              <th>Price</th>
-              <th>Total Value</th>
-            </tr>
-          </thead>
-          <tbody>
-            {stocks.map((stock) => (
-              <tr key={stock.symbol}>
-                <td>{stock.symbol}</td>
-                <td>{stock.quantity}</td>
-                <td>
-                  {stock.price !== undefined
-                    ? `$${stock.price.toFixed(2)}`
-                    : "N/A"}
-                </td>
-                <td>
-                  {stock.price !== undefined
-                    ? `$${(stock.price * stock.quantity).toFixed(2)}`
-                    : "N/A"}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        <h3>Total Portfolio Value: ${totalValue.toFixed(2)}</h3>
+        <h2>Portfolio Details</h2>
+        
+        {stocks.length === 0 ? (
+          <div className={styles.emptyState}>
+            No stocks in portfolio
+          </div>
+        ) : (
+          <>
+            <div className={styles.tableContainer}>
+              <table className={styles.stockTable}>
+                <thead>
+                  <tr>
+                    <th>Symbol</th>
+                    <th>Quantity</th>
+                    <th>Price</th>
+                    <th>Value</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {stocks.map((stock) => (
+                    <tr key={stock.symbol}>
+                      <td>{stock.symbol}</td>
+                      <td>{stock.quantity}</td>
+                      <td>${stock.price.toFixed(2)}</td>
+                      <td>${(stock.price * stock.quantity).toFixed(2)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            
+            <div className={styles.totalValue}>
+              <span>Total Value:</span>
+              <span>${totalValue.toFixed(2)}</span>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

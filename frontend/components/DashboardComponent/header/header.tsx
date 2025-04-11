@@ -1,30 +1,36 @@
 import React from "react";
 import { getAuth, signOut } from "firebase/auth";
 import { useRouter } from "next/router";
+import Image from "next/image";
 import styles from "./header.module.css";
 import logoImage from "../assets/image 3.png";
-import notiimage from "../assets/icon_bell.png";
-import profileimage from "../assets/profile.png";
+import notiImage from "../assets/icon_bell.png";
+import profileImage from "../assets/profile.png";
 
 const Header: React.FC = () => {
   const router = useRouter();
 
-  const handleLogout = () => {
-    const auth = getAuth();
-    signOut(auth)
-      .then(() => {
-        console.log("User signed out");
-        router.push("/signin"); // Redirect to the sign-in page
-      })
-      .catch((error) => {
-        console.error("Error signing out: ", error);
-      });
+  const handleLogout = async () => {
+    try {
+      const auth = getAuth();
+      await signOut(auth);
+      router.push("/signin");
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
   };
 
   return (
-    <header className={styles.header}>
+    <header className={styles.header} role="banner">
       <div className={styles.headerLeft}>
-        <img className={styles.logoImage} src={logoImage.src} alt="Logo" />
+        <div className={styles.logoContainer}>
+          <Image 
+            src={logoImage} 
+            alt="Investlytic Logo" 
+            className={styles.logo}
+            priority
+          />
+        </div>
         <div className={styles.companyInfo}>
           <h1 className={styles.companyName}>Investlytic</h1>
           <p className={styles.tagline}>
@@ -32,18 +38,29 @@ const Header: React.FC = () => {
           </p>
         </div>
       </div>
+
       <div className={styles.headerRight}>
-        <img
-          className={styles.logoImage2}
-          src={notiimage.src}
-          alt="Notification"
-        />
-        <img
-          className={styles.logoImage3}
-          src={profileimage.src}
-          alt="Profile"
-        />
-        <button className={styles.logoutButton} onClick={handleLogout}>
+        <button className={styles.iconButton} aria-label="Notifications">
+          <Image
+            src={notiImage}
+            alt="Notifications"
+            className={styles.icon}
+          />
+        </button>
+        
+        <button className={styles.iconButton} aria-label="Profile">
+          <Image
+            src={profileImage}
+            alt="User Profile"
+            className={styles.profileIcon}
+          />
+        </button>
+
+        <button 
+          className={styles.logoutButton}
+          onClick={handleLogout}
+          aria-label="Logout"
+        >
           Logout
         </button>
       </div>

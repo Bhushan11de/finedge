@@ -1,45 +1,53 @@
-.popup {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
 .popupContent {
-  padding: 20px;
-  border-radius: 5px;
-  width: 80%;
-  max-height: 80%;
-  overflow-y: auto;
+  background: white;
+  padding: 2rem;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 800px;
+  max-height: 90vh;
+  overflow: auto;
 }
 
-.closeButton {
-  background: red;
-  color: white;
-  border: none;
-  padding: 5px 10px;
-  cursor: pointer;
-  float: right;
+.tableContainer {
+  overflow-x: auto;
 }
 
 .stockTable {
   width: 100%;
   border-collapse: collapse;
-  margin-top: 20px;
-}
-
-.stockTable th,
-.stockTable td {
-  border: 1px solid #ddd;
-  padding: 8px;
-  text-align: left;
+  margin: 1rem 0;
 }
 
 .stockTable th {
-  background-color: #ff0000;
+  background-color: #3498db;
+  color: white;
+  padding: 1rem;
+  text-align: left;
+}
+
+.stockTable td {
+  padding: 1rem;
+  border-bottom: 1px solid #eee;
+}
+
+.stockTable tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+.totalValue {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+  margin-top: 1.5rem;
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+
+.emptyState {
+  text-align: center;
+  padding: 2rem;
+  color: #7f8c8d;
 }

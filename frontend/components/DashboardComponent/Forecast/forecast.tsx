@@ -1,156 +1,230 @@
 import React, { useState, useEffect, useRef } from "react";
-import { getAuth, onAuthStateChanged } from "firebase/auth";
-import { collection, getDocs } from "firebase/firestore";
-import { db } from "../../firebaseconfig"; // Adjust the path as needed
+import { useAuth } from "../../context/AuthContext";
+import { collection, getDocs, query, where } from "firebase/firestore";
+import { db } from "../../firebaseconfig";
 import Chart from "chart.js/auto";
 import styles from "./forecast.module.css";
 
+interface Stock {
+  id: string;
+  symbol: string;
+  quantity: number;
+}
+
+interface ForecastData {
+  dates: string[];
+  prices: number[];
+  prediction: number[];
+}
+
 const Forecast: React.FC = () => {
-  const [userEmail, setUserEmail] = useState<string | null>(null);
-  const [stocks, setStocks] = useState<{ symbol: string; quantity: number }[]>(
-    []
-  );
-  const [selectedStock, setSelectedStock] = useState<string | null>(null);
-  const [forecastData, setForecastData] = useState<{
-    dates: string[];
-    prices: number[];
-  } | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const { currentUser } = useAuth();
+  const [stocks, setStocks] = useState<Stock[]>([]);
+  const [selectedStock, setSelectedStock] = useState<string>("");
+  const [forecastData, setForecastData] = useState<ForecastData | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
   const chartRef = useRef<HTMLCanvasElement | null>(null);
   const chartInstanceRef = useRef<Chart | null>(null);
 
   useEffect(() => {
-    const auth = getAuth();
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user && user.email) {
-        setUserEmail(user.email);
-        fetchUserStocks(user.email);
-      } else {
-        setUserEmail(null);
+    const fetchUserStocks = async () => {
+      if (!currentUser) return;
+      
+      try {
+        const stocksQuery = query(
+          collection(db, "users", currentUser.uid, "stocks"),
+          where("quantity", ">", 0)
+        );
+        
+        const snapshot = await getDocs(stocksQuery);
+        const stocksData = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }) as Stock);
+        
+        setStocks(stocksData);
+      } catch (err) {
+        setError("Failed to load portfolio");
+        console.error("Error fetching stocks:", err);
       }
-    });
+    };
 
-    return () => unsubscribe();
-  }, []);
-
-  const fetchUserStocks = async (email: string) => {
-    try {
-      const stocksCollection = collection(db, "userstocks", email, "stocks");
-      const stocksSnapshot = await getDocs(stocksCollection);
-      const stocksList = stocksSnapshot.docs.map(
-        (doc) => doc.data() as { symbol: string; quantity: number }
-      );
-      setStocks(stocksList);
-    } catch (error) {
-      console.error("Error fetching user stocks:", error);
-    }
-  };
+    fetchUserStocks();
+  }, [currentUser]);
 
   const handleForecast = async () => {
-    if (selectedStock) {
-      setIsLoading(true);
-      try {
-        const response = await fetch("http://localhost:5000/forecast", {
-          // Ensure the correct URL
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ stock_symbol: selectedStock }),
-        });
+    if (!selectedStock) {
+      setError("Please select a stock");
+      return;
+    }
 
-        if (!response.ok) {
-          throw new Error("Network response was not ok");
-        }
+    setIsLoading(true);
+    setError("");
+    
+    try {
+      const response = await fetch("http://localhost:5000/forecast", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ 
+          stock_symbol: selectedStock,
+          days: 30 // Add configurable parameter
+        }),
+      });
 
-        const data = await response.json();
-        setForecastData(data);
-      } catch (error) {
-        console.error("Error fetching forecast data:", error);
-      } finally {
-        setIsLoading(false);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
+
+      const data: ForecastData = await response.json();
+      
+      if (data.dates.length === 0) {
+        throw new Error("No forecast data received");
+      }
+
+      setForecastData(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Forecast failed");
+      console.error("Forecast error:", err);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    if (forecastData && chartRef.current) {
-      displayChart(forecastData);
-    }
-  }, [forecastData]);
+    const initChart = () => {
+      if (!forecastData || !chartRef.current) return;
 
-  const displayChart = (data: { dates: string[]; prices: number[] }) => {
-    const ctx = chartRef.current?.getContext("2d");
-    if (ctx) {
+      const ctx = chartRef.current.getContext("2d");
+      if (!ctx) return;
+
+      // Destroy previous chart instance
       if (chartInstanceRef.current) {
         chartInstanceRef.current.destroy();
       }
 
-      const minPrice = Math.min(...data.prices);
-      const maxPrice = Math.max(...data.prices);
+      const allPrices = [...forecastData.prices, ...forecastData.prediction];
+      const minPrice = Math.min(...allPrices);
+      const maxPrice = Math.max(...allPrices);
 
       chartInstanceRef.current = new Chart(ctx, {
         type: "line",
         data: {
-          labels: data.dates,
+          labels: [...forecastData.dates, "Future"],
           datasets: [
             {
-              label: "Forecasted Prices",
-              data: data.prices,
+              label: "Historical Prices",
+              data: forecastData.prices,
               borderColor: "rgba(75, 192, 192, 1)",
-              borderWidth: 1,
+              borderWidth: 2,
               fill: false,
             },
+            {
+              label: "Predicted Prices",
+              data: [...forecastData.prices.slice(-1), ...forecastData.prediction],
+              borderColor: "rgba(255, 99, 132, 1)",
+              borderWidth: 2,
+              borderDash: [5, 5],
+              fill: false,
+            }
           ],
         },
         options: {
+          responsive: true,
+          maintainAspectRatio: false,
           scales: {
             x: {
-              beginAtZero: true,
+              title: {
+                display: true,
+                text: "Date"
+              },
+              grid: {
+                display: false
+              }
             },
             y: {
-              beginAtZero: true,
-              min: minPrice,
-              max: maxPrice,
-            },
+              title: {
+                display: true,
+                text: "Price ($)"
+              },
+              min: minPrice * 0.95,
+              max: maxPrice * 1.05,
+            }
           },
-        },
+          plugins: {
+            tooltip: {
+              mode: "index",
+              intersect: false,
+            },
+            legend: {
+              position: "top",
+            }
+          }
+        }
       });
-    }
-  };
+    };
+
+    initChart();
+    return () => {
+      if (chartInstanceRef.current) {
+        chartInstanceRef.current.destroy();
+      }
+    };
+  }, [forecastData]);
 
   return (
     <div className={styles.container}>
-      <h1>Forecast Stock Prices</h1>
-      <select
-        className={styles.select}
-        value={selectedStock || ""}
-        onChange={(e) => setSelectedStock(e.target.value)}
-      >
-        <option value="" disabled>
-          Select a stock
-        </option>
-        {stocks.map((stock) => (
-          <option key={stock.symbol} value={stock.symbol}>
-            {stock.symbol}
-          </option>
-        ))}
-      </select>
-      <button
-        className={styles.button}
-        onClick={handleForecast}
-        disabled={isLoading}
-      >
-        {isLoading ? "Loading..." : "Forecast"}
-      </button>
+      <h1 className={styles.title}>Stock Price Forecast</h1>
+      
+      <div className={styles.controls}>
+        <select
+          className={styles.select}
+          value={selectedStock}
+          onChange={(e) => setSelectedStock(e.target.value)}
+          disabled={isLoading}
+        >
+          <option value="">{stocks.length ? "Select Stock" : "No stocks available"}</option>
+          {stocks.map((stock) => (
+            <option key={stock.id} value={stock.symbol}>
+              {stock.symbol} ({stock.quantity} shares)
+            </option>
+          ))}
+        </select>
+
+        <button
+          className={styles.button}
+          onClick={handleForecast}
+          disabled={isLoading || !selectedStock}
+        >
+          {isLoading ? (
+            <span className={styles.loading}>
+              <span className={styles.spinner} /> Forecasting...
+            </span>
+          ) : (
+            "Generate Forecast"
+          )}
+        </button>
+
+        {forecastData && (
+          <button
+            className={styles.resetButton}
+            onClick={() => {
+              setForecastData(null);
+              setSelectedStock("");
+            }}
+          >
+            Reset
+          </button>
+        )}
+      </div>
+
+      {error && <div className={styles.error}>{error}</div>}
+
       {forecastData && (
-        <div className={styles["canvas-container"]}>
-          <canvas
-            ref={chartRef}
-            id="forecastChart"
-            width="400"
-            height="200"
-          ></canvas>
+        <div className={styles.chartContainer}>
+          <canvas ref={chartRef} className={styles.chart} />
         </div>
       )}
     </div>

@@ -1,32 +1,26 @@
+// backend/routes/auth.js
 const express = require("express");
 const bcrypt = require("bcryptjs");
-const mysql = require("mysql2/promise"); // Use mysql2 for async operations
 const router = express.Router();
-
-// Create a connection pool to the AWS RDS MySQL instance
-const pool = mysql.createPool({
-  host: "database-1.c9iimq6egwnz.us-west-2.rds.amazonaws.com", // Replace with your RDS endpoint
-  user: "admin", // Replace with your MySQL username
-  password: "Bhushan123", // Replace with your MySQL password
-  database: "portfolio_tracker", // Replace with your database name
-});
+const User = require("../models/User");
 
 // POST /api/signup
 router.post("/signup", async (req, res) => {
   const { name, email, password } = req.body;
-
   try {
-    // Check if email already exists
-    const [rows] = await pool.query("SELECT * FROM users WHERE email = ?", [email]);
-    if (rows.length > 0) {
+    const existing = await User.findOne({ where: { email } });
+    if (existing) {
       return res.status(400).json({ message: "Email already exists" });
     }
 
-    // Hash password and insert new user
     const hashedPassword = await bcrypt.hash(password, 10);
-    await pool.query("INSERT INTO users (name, email, password) VALUES (?, ?, ?)", [name, email, hashedPassword]);
+    const user = await User.create({
+      name,
+      email,
+      password: hashedPassword,
+    });
 
-    res.status(201).json({ message: "User created", user: { name, email } });
+    res.status(201).json({ message: "User created", user: { id: user.id, email: user.email } });
   } catch (err) {
     res.status(500).json({ message: "Server error", error: err.message });
   }
@@ -35,20 +29,13 @@ router.post("/signup", async (req, res) => {
 // POST /api/signin
 router.post("/signin", async (req, res) => {
   const { email, password } = req.body;
-
   try {
-    // Retrieve user by email
-    const [rows] = await pool.query("SELECT * FROM users WHERE email = ?", [email]);
-    if (rows.length === 0) {
-      return res.status(404).json({ message: "User not found" });
-    }
+    const user = await User.findOne({ where: { email } });
 
-    const user = rows[0];
+    if (!user) return res.status(404).json({ message: "User not found" });
+
     const valid = await bcrypt.compare(password, user.password);
-
-    if (!valid) {
-      return res.status(401).json({ message: "Invalid credentials" });
-    }
+    if (!valid) return res.status(401).json({ message: "Invalid credentials" });
 
     res.json({ message: "Signin successful", user: { id: user.id, email: user.email, name: user.name } });
   } catch (err) {

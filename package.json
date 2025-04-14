@@ -43,5 +43,20 @@
     "tailwindcss": "^3.4.17",
     "vite": "^6.0.3"
   },
-  "proxy": "44.232.157.2:5000"
+  "proxy": "44.232.157.2:5000",
+  "description": "<div align=\"center\">",
+  "main": "eslint.config.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Bhushan11de/finedge.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Bhushan11de/finedge/issues"
+  },
+  "homepage": "https://github.com/Bhushan11de/finedge#readme"
 }

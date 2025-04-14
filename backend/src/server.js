@@ -67,6 +67,7 @@ app.use(cors({
     'https://portfolio-tracker-hackstyx.vercel.app',
     'https://portfolio-tracker-kc46ea0ei-hackstyxs-projects.vercel.app',
     'http://localhost:5173',
+    'http://44.232.157.2:5000',
     /\.vercel\.app$/ // Allow all Vercel preview deployments
   ],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],

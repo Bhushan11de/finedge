@@ -5,10 +5,11 @@ require('dotenv').config();
 const sequelize = require('./config/database');
 const stockRoutes = require('./routes/stocks');
 const watchlistRoutes = require('./routes/watchlist');
+const authRoutes = require('./routes/auth')
 const stockPriceService = require('./services/stockPriceService');
 const Stock = require('./models/Stock');
 
-// Sample stock data to initialize the database
+// Sample stocks data for initialization
 const defaultStocks = [
   {
     name: 'Apple Inc.',
@@ -59,14 +60,14 @@ const defaultStocks = [
 
 const app = express();
 
-// CORS Configuration
+// Configure CORS with more permissive options for development
 app.use(cors({
   origin: [
     'https://portfolio-tracker-sage.vercel.app',
     'https://portfolio-tracker-hackstyx.vercel.app',
     'https://portfolio-tracker-kc46ea0ei-hackstyxs-projects.vercel.app',
-    'http://44.232.157.2:3000',
-    /\.vercel\.app$/
+    'http://localhost:5173',
+    /\.vercel\.app$/ // Allow all Vercel preview deployments
   ],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
@@ -74,109 +75,68 @@ app.use(cors({
   optionsSuccessStatus: 200
 }));
 
-// Enable CORS preflight
+// Pre-flight requests
 app.options('*', cors());
+
 app.use(express.json());
 
-// Health Check Endpoint
+// Health check endpoint
 app.get('/api/health', (req, res) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-
-  res.status(200).json({ status: 'ok', message: 'Server is running' });
+  // Add CORS headers explicitly for the health endpoint
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  
+  res.json({ status: 'ok', message: 'Server is running' });
 });
 
-// Root Endpoint
-app.get('/', (req, res) => {
-  res.send('✅ Backend is up and running!');
-});
-
-// API Routes
+app.use('/api/auth', authRoutes)
 app.use('/api/stocks', stockRoutes);
 app.use('/api/watchlist', watchlistRoutes);
 
-// Initialize default stocks if DB is empty
-const initializeStocks = async () => {
-  try {
-    const stockCount = await Stock.count();
-    if (stockCount === 0) {
-      console.log('⚠️ No stocks found. Initializing default stocks...');
-      await Promise.all(defaultStocks.map(stock => Stock.create(stock)));
-      console.log('✅ Default stocks initialized.');
-    } else {
-      console.log(`ℹ️ Found ${stockCount} existing stocks. Skipping initialization.`);
-    }
-  } catch (error) {
-    console.error('❌ Error initializing stocks:', error.message);
-  }
-};
-
-// Handle database connection errors
-const setupConnectionHandlers = () => {
-  sequelize.connectionManager.initPools();
-
-  // Handle connection loss
-  sequelize.connectionManager.on('error', (err) => {
-    if (err.code === 'PROTOCOL_CONNECTION_LOST') {
-      console.log('Database connection was closed. Reconnecting...');
-      setTimeout(() => {
-        sequelize.connectionManager.initPools()
-          .then(() => console.log('Successfully reconnected to the database!'))
-          .catch((reconnectErr) => console.error('Error reconnecting to database:', reconnectErr));
-      }, 1000);
-    } else {
-      console.error('Database connection error:', err);
-    }
-  });
-};
-
-// Start server
 const PORT = process.env.PORT || 5000;
 
-const startServer = () => {
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`🚀 Server running on port ${PORT} and binding to 0.0.0.0`);
-  });
-};
-
-const initializeDatabase = async () => {
+const initializeStocks = async () => {
   try {
-    console.log('Attempting to authenticate database...');
-    await sequelize.authenticate();
-    console.log('✅ Database connection established');
+    // Check if there are any existing stocks
+    const stockCount = await Stock.count();
     
-    setupConnectionHandlers();
-    
-    await sequelize.sync();
-    console.log('✅ Database synced successfully');
-
-    await initializeStocks();
-    console.log('Starting stock price updates...');
-    stockPriceService.startPeriodicUpdates();
-    
-    return true;
+    if (stockCount === 0) {
+      console.log('No stocks found. Initializing with default stocks...');
+      
+      // Create default stocks
+      await Promise.all(defaultStocks.map(stock => Stock.create(stock)));
+      
+      console.log('Default stocks created successfully');
+    } else {
+      console.log(`Found ${stockCount} existing stocks. Skipping initialization.`);
+    }
   } catch (error) {
-    console.error('❌ Database initialization failed:', error.message);
-    return false;
+    console.error('Error initializing stocks:', error);
   }
 };
 
-const start = async (attempt = 1) => {
-  console.log(`Starting application (attempt ${attempt})...`);
-  
-  const dbInitialized = await initializeDatabase();
-  if (!dbInitialized) {
-    const nextAttemptDelay = Math.min(1000 * attempt, 10000); // Max 10 second delay
-    console.log(`Retrying in ${nextAttemptDelay/1000} seconds...`);
-    setTimeout(() => start(attempt + 1), nextAttemptDelay);
-    return;
-  }
+const start = async () => {
+  try {
+    // Sync database
+    await sequelize.sync();
+    console.log('Database synced successfully');
 
-  startServer();
+    // Initialize stocks
+    await initializeStocks();
+
+    // Start periodic stock price updates
+    stockPriceService.startPeriodicUpdates();
+
+    app.listen(PORT, () => {
+      console.log(`Server is running on port ${PORT}`);
+    });
+  } catch (error) {
+    console.error('Failed to start server:', error);
+    process.exit(1);
+  }
 };
 
-// Start the application
 start();
 
-module.exports = app;
+module.exports = app; 

@@ -1,12 +1,13 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom"; // Or next/router for Next.js
-import styles from "./signin.module.css";
+import React, { useState, useContext } from "react";
+import { AuthContext } from '../context/AuthContext';
+import { Link, useNavigate } from "react-router-dom";
 
-const Signin = () => {
+const Signin = ({ theme }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const { login } = useContext(AuthContext);
   const navigate = useNavigate();
 
   const handleSignin = async (e) => {
@@ -15,23 +16,12 @@ const Signin = () => {
     setError("");
 
     try {
-        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/signin`, {
-
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || "Signin failed");
+      const result = await login(email, password);
+      if (result.success) {
+        navigate("/dashboard");
+      } else {
+        throw new Error(result.error || "Signin failed");
       }
-
-      // Optionally store user or token here (localStorage or context)
-      // localStorage.setItem("user", JSON.stringify(data.user));
-
-      navigate("/dashboard");
     } catch (err) {
       setError(err.message);
     } finally {
@@ -40,47 +30,47 @@ const Signin = () => {
   };
 
   return (
-    <div className={styles.signin}>
-      <div className={styles.signincont}>
-        <div className={styles.signinside}>
-          <p className={styles.headsignin}>Sign In</p>
-          <form onSubmit={handleSignin} className={styles.inputfields}>
-            <label className={styles.textsignin}>Email-ID</label>
+    <div className={`min-h-screen flex items-center justify-center ${theme === 'dark' ? 'bg-[#171717]' : 'bg-gray-100'}`}>
+      <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
+        <h2 className="text-2xl font-bold mb-6 text-center">Sign In</h2>
+        <form onSubmit={handleSignin} className="space-y-4">
+          <div>
+            <label className="block text-gray-700 mb-2">Email-ID</label>
             <input
               type="email"
-              className={styles.emailidinput}
+              className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="Enter your email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
             />
-
-            <label className={styles.textsignin}>Password</label>
+          </div>
+          <div>
+            <label className="block text-gray-700 mb-2">Password</label>
             <input
               type="password"
-              className={styles.passwordinput}
+              className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="Enter your password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
             />
-
-            <p className={styles.createaccount}>
-              Don't have an account?{" "}
-              <span
-                className={styles.signuproute}
-                onClick={() => navigate("/signup")}
-              >
-                Sign Up
-              </span>
-            </p>
-
-            <button className={styles.buttontext} type="submit" disabled={loading}>
-              {loading ? "Signing In..." : "Sign In"}
-            </button>
-            {error && <p style={{ color: "red" }}>{error}</p>}
-          </form>
-        </div>
+          </div>
+          <p className="text-center text-sm">
+            Don't have an account?{' '}
+            <Link to="/signup" className="text-blue-500 hover:underline">
+              Sign Up
+            </Link>
+          </p>
+          <button
+            type="submit"
+            className="w-full bg-blue-500 text-white p-3 rounded-lg hover:bg-blue-600 disabled:bg-blue-300"
+            disabled={loading}
+          >
+            {loading ? "Signing In..." : "Sign In"}
+          </button>
+          {error && <p className="text-red-500 text-center">{error}</p>}
+        </form>
       </div>
     </div>
   );

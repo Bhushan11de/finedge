@@ -1,12 +1,12 @@
 const { Sequelize } = require('sequelize');
 require('dotenv').config();
 
+console.log('DATABASE_URL:', process.env.DATABASE_URL); // Debug log
+
 const sequelize = new Sequelize(process.env.DATABASE_URL, {
   dialect: 'mysql',
-  logging: false, // Turn on if you want to see SQL logs
+  logging: false,
   dialectOptions: {
-    // Only use this SSL part if you're on Railway or a host that requires SSL
-    // Otherwise, comment it out for localhost
     ssl: {
       require: false,
       rejectUnauthorized: false
@@ -14,7 +14,6 @@ const sequelize = new Sequelize(process.env.DATABASE_URL, {
   }
 });
 
-// Test the connection
 sequelize.authenticate()
   .then(() => {
     console.log('✅ Database connection has been established successfully.');

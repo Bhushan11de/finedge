@@ -112,27 +112,71 @@ const initializeStocks = async () => {
   }
 };
 
+// Handle database connection errors
+const setupConnectionHandlers = () => {
+  sequelize.connectionManager.initPools();
+
+  // Handle connection loss
+  sequelize.connectionManager.on('error', (err) => {
+    if (err.code === 'PROTOCOL_CONNECTION_LOST') {
+      console.log('Database connection was closed. Reconnecting...');
+      setTimeout(() => {
+        sequelize.connectionManager.initPools()
+          .then(() => console.log('Successfully reconnected to the database!'))
+          .catch((reconnectErr) => console.error('Error reconnecting to database:', reconnectErr));
+      }, 1000);
+    } else {
+      console.error('Database connection error:', err);
+    }
+  });
+};
+
 // Start server
 const PORT = process.env.PORT || 5000;
 
-const start = async () => {
+const startServer = () => {
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`🚀 Server running on port ${PORT} and binding to 0.0.0.0`);
+  });
+};
+
+const initializeDatabase = async () => {
   try {
+    console.log('Attempting to authenticate database...');
+    await sequelize.authenticate();
+    console.log('✅ Database connection established');
+    
+    setupConnectionHandlers();
+    
     await sequelize.sync();
     console.log('✅ Database synced successfully');
 
     await initializeStocks();
-
+    console.log('Starting stock price updates...');
     stockPriceService.startPeriodicUpdates();
-
-    app.listen(PORT, () => {
-      console.log(`🚀 Server running on port ${PORT}`);
-    });
+    
+    return true;
   } catch (error) {
-    console.error('❌ Failed to start server:', error.message);
-    process.exit(1);
+    console.error('❌ Database initialization failed:', error.message);
+    return false;
   }
 };
 
+const start = async (attempt = 1) => {
+  console.log(`Starting application (attempt ${attempt})...`);
+  
+  const dbInitialized = await initializeDatabase();
+  if (!dbInitialized) {
+    const nextAttemptDelay = Math.min(1000 * attempt, 10000); // Max 10 second delay
+    console.log(`Retrying in ${nextAttemptDelay/1000} seconds...`);
+    setTimeout(() => start(attempt + 1), nextAttemptDelay);
+    return;
+  }
+
+  startServer();
+};
+
+// Start the application
 start();
 
 module.exports = app;

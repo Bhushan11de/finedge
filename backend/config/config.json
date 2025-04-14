@@ -1,23 +1,44 @@
 {
   "development": {
-    "username": "root",
-    "password": null,
-    "database": "database_development",
-    "host": "127.0.0.1",
-    "dialect": "mysql"
+    "username": "admin",
+    "password": "Bhushan123",
+    "database": "portfolio_tracker",
+    "host": "database-1.c9iimq6egwnz.us-west-2.rds.amazonaws.com",
+    "port": 3306,
+    "dialect": "mysql",
+    "dialectOptions": {
+      "ssl": {
+        "require": false,
+        "rejectUnauthorized": false
+      }
+    }
   },
   "test": {
-    "username": "root",
-    "password": null,
-    "database": "database_test",
-    "host": "127.0.0.1",
-    "dialect": "mysql"
+    "username": "admin",
+    "password": "Bhushan123",
+    "database": "portfolio_tracker",
+    "host": "database-1.c9iimq6egwnz.us-west-2.rds.amazonaws.com",
+    "port": 3306,
+    "dialect": "mysql",
+    "dialectOptions": {
+      "ssl": {
+        "require": false,
+        "rejectUnauthorized": false
+      }
+    }
   },
   "production": {
-    "username": "root",
-    "password": null,
-    "database": "database_production",
-    "host": "127.0.0.1",
-    "dialect": "mysql"
+    "username": "admin",
+    "password": "Bhushan123",
+    "database": "portfolio_tracker",
+    "host": "database-1.c9iimq6egwnz.us-west-2.rds.amazonaws.com",
+    "port": 3306,
+    "dialect": "mysql",
+    "dialectOptions": {
+      "ssl": {
+        "require": false,
+        "rejectUnauthorized": false
+      }
+    }
   }
 }

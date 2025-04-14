@@ -1,0 +1,84 @@
+.signin {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.signincont {
+  width: 100%;
+  max-width: 400px;
+}
+
+.signinside {
+  background: white;
+  padding: 2rem;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.headsignin {
+  font-size: 1.5rem;
+  font-weight: bold;
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.inputfields {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.textsignin {
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.emailidinput,
+.passwordinput {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  outline: none;
+}
+
+.emailidinput:focus,
+.passwordinput:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.createaccount {
+  font-size: 0.875rem;
+  text-align: center;
+}
+
+.signuproute {
+  color: #3b82f6;
+  cursor: pointer;
+}
+
+.signuproute:hover {
+  text-decoration: underline;
+}
+
+.buttontext {
+  width: 100%;
+  padding: 0.75rem;
+  background-color: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 0.375rem;
+  cursor: pointer;
+}
+
+.buttontext:hover:not(:disabled) {
+  background-color: #2563eb;
+}
+
+.buttontext:disabled {
+  background-color: #60a5fa;
+  cursor: not-allowed;
+}

@@ -3,13 +3,13 @@ const bcrypt = require("bcryptjs");
 const mysql = require("mysql2/promise"); // Use mysql2 for async operations
 const router = express.Router();
 
-// // Create a connection pool to the AWS RDS MySQL instance
-// const pool = mysql.createPool({
-//   host: "your-rds-endpoint", // Replace with your RDS endpoint
-//   user: "your-username", // Replace with your MySQL username
-//   password: "your-password", // Replace with your MySQL password
-//   database: "your-database-name", // Replace with your database name
-// });
+// Create a connection pool to the AWS RDS MySQL instance
+const pool = mysql.createPool({
+  host: "database-1.c9iimq6egwnz.us-west-2.rds.amazonaws.com", // Replace with your RDS endpoint
+  user: "admin", // Replace with your MySQL username
+  password: "Bhushan123", // Replace with your MySQL password
+  database: "portfolio_tracker", // Replace with your database name
+});
 
 // POST /api/signup
 router.post("/signup", async (req, res) => {

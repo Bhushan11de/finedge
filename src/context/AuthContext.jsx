@@ -33,12 +33,12 @@ export function AuthProvider({ children }) {
     }
   };
 
-  const register = async (username, email, password) => {
+  const register = async (name, email, password) => {
     try {
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/auth/signup`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, email, password }),
+        body: JSON.stringify({ name, email, password }),
       });
       const data = await response.json();
       if (response.ok) {

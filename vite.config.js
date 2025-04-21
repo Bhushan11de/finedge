@@ -4,8 +4,16 @@ import { visualizer } from 'rollup-plugin-visualizer';
 
 export default defineConfig({
   server: {
-    host: '0.0.0.0', // Bind to all interfaces
-    port: 5173
+    port: 3000,
+    host: true,
+    strictPort: true,
+    proxy: {
+      '/api': {
+        target: 'http://44.232.157.2:5000',
+        changeOrigin: true,
+        secure: false
+      }
+    }
   },
   plugins: [
     react(),

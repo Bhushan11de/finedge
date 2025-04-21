@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { AreaChart, Card, Title, Badge, TabGroup, TabList, Tab } from '@tremor/react';
 import { HiTrendingUp, HiTrendingDown, HiCurrencyDollar, HiChartPie, HiClock } from 'react-icons/hi';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 import PortfolioAnalytics from '../components/dashboard/PortfolioAnalytics';
 import StockDetail from '../components/dashboard/StockDetail';
 
@@ -13,6 +14,27 @@ const api = axios.create({
   baseURL: API_BASE_URL,
   timeout: 10000
 });
+
+// Add token to all requests
+api.interceptors.request.use(config => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+// Handle 401 responses
+api.interceptors.response.use(
+  response => response,
+  error => {
+    if (error.response && error.response.status === 401) {
+      localStorage.removeItem('token');
+      window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  }
+);
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -33,6 +55,7 @@ const itemVariants = {
 };
 
 export default function Dashboard({ theme: propTheme }) {
+  const navigate = useNavigate();
   const [stocks, setStocks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -40,6 +63,22 @@ export default function Dashboard({ theme: propTheme }) {
   const [selectedPeriod, setSelectedPeriod] = useState('1W');
   const [selectedStock, setSelectedStock] = useState(null);
   const [currentTime, setCurrentTime] = useState(new Date());
+
+  // Check authentication on component mount
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      navigate('/login');
+      return;
+    }
+
+    // Verify token is valid
+    api.get('/auth/verify')
+      .catch(() => {
+        localStorage.removeItem('token');
+        navigate('/login');
+      });
+  }, [navigate]);
 
   // Add market status calculation function
   const getMarketStatus = () => {

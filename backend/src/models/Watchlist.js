@@ -1,5 +1,5 @@
 const { DataTypes } = require('sequelize');
-const sequelize = require('../config/database');
+const sequelize = require('../config/sequelize');
 
 const Watchlist = sequelize.define('Watchlist', {
   id: {
@@ -7,32 +7,36 @@ const Watchlist = sequelize.define('Watchlist', {
     primaryKey: true,
     autoIncrement: true
   },
-  name: {
-    type: DataTypes.STRING,
-    allowNull: false
+  userId: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    references: {
+      model: 'Users',
+      key: 'id'
+    }
   },
-  ticker: {
-    type: DataTypes.STRING,
-    allowNull: false
-  },
-  target_price: {
-    type: DataTypes.DECIMAL(10, 2),
-    allowNull: false
-  },
-  current_price: {
-    type: DataTypes.DECIMAL(10, 2),
-    allowNull: true
-  },
-  last_updated: {
-    type: DataTypes.DATE,
-    allowNull: true
+  stockId: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    references: {
+      model: 'Stocks',
+      key: 'id'
+    }
   }
 }, {
-  tableName: 'watchlists',
-  underscored: true,
   timestamps: true,
-  createdAt: 'created_at',
-  updatedAt: 'updated_at'
+  underscored: true,
+  indexes: [
+    {
+      unique: true,
+      fields: ['user_id', 'stock_id']
+    }
+  ]
 });
+
+Watchlist.associate = function(models) {
+  Watchlist.belongsTo(models.User, { foreignKey: 'userId' });
+  Watchlist.belongsTo(models.Stock, { foreignKey: 'stockId' });
+};
 
 module.exports = Watchlist; 

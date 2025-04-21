@@ -16,7 +16,7 @@ export function AuthProvider({ children }) {
 
   const login = async (email, password) => {
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/auth/signin`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/auth/signin`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
@@ -29,13 +29,14 @@ export function AuthProvider({ children }) {
       }
       return { success: false, error: data.message || 'Login failed' };
     } catch (error) {
-      return { success: false, error: 'Network error' };
+      console.error('Login error:', error);
+      return { success: false, error: 'Network error - Please check if the server is running' };
     }
   };
 
   const register = async (name, email, password) => {
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/auth/signup`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/auth/signup`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, email, password }),
@@ -46,7 +47,8 @@ export function AuthProvider({ children }) {
       }
       return { success: false, error: data.message || 'Registration failed' };
     } catch (error) {
-      return { success: false, error: 'Network error' };
+      console.error('Registration error:', error);
+      return { success: false, error: 'Network error - Please check if the server is running' };
     }
   };
 

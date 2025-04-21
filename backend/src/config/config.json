@@ -1,0 +1,31 @@
+{
+  "development": {
+    "username": "admin",
+    "password": "Bhushan123",
+    "database": "portfolio_tracker",
+    "host": "database-1.c9iimq6egwnz.us-west-2.rds.amazonaws.com",
+    "port": 3306,
+    "dialect": "mysql"
+  },
+  "test": {
+    "username": "admin",
+    "password": "Bhushan123",
+    "database": "portfolio_tracker",
+    "host": "database-1.c9iimq6egwnz.us-west-2.rds.amazonaws.com",
+    "dialect": "mysql",
+    "dialectOptions": {
+      "ssl": {
+        "require": false,
+        "rejectUnauthorized": false
+      }
+    }
+  },
+  "production": {
+    "username": "admin",
+    "password": "Bhushan123",
+    "database": "portfolio_tracker",
+    "host": "database-1.c9iimq6egwnz.us-west-2.rds.amazonaws.com",
+    "port": 3306,
+    "dialect": "mysql"
+  }
+} 

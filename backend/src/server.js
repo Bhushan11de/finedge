@@ -1,13 +1,16 @@
 const express = require('express');
 const cors = require('cors');
+const jwt = require('jsonwebtoken');
 require('dotenv').config();
 
 const sequelize = require('./config/database');
 const stockRoutes = require('./routes/stocks');
 const watchlistRoutes = require('./routes/watchlist');
-const authRoutes = require('./routes/auth')
+const authRoutes = require('./routes/auth');
+const transactionRoutes = require('./routes/transactions');
 const stockPriceService = require('./services/stockPriceService');
 const Stock = require('./models/Stock');
+const User = require('./models/User');
 
 // Sample stocks data for initialization
 const defaultStocks = [
@@ -60,40 +63,54 @@ const defaultStocks = [
 
 const app = express();
 
-// Configure CORS with more permissive options for development
-app.use(cors({
-  origin: [
-    'https://portfolio-tracker-sage.vercel.app',
-    'https://portfolio-tracker-hackstyx.vercel.app',
-    'https://portfolio-tracker-kc46ea0ei-hackstyxs-projects.vercel.app',
-    'http://localhost:5173',
-    'http://44.232.157.2:3000',
-    /\.vercel\.app$/ // Allow all Vercel preview deployments
-  ],
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true,
-  optionsSuccessStatus: 200
-}));
+// Configure CORS
+app.use(cors());
 
-// Pre-flight requests
-app.options('*', cors());
+// Authentication middleware
+const authenticateToken = (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+
+  if (!token) {
+    return res.status(401).json({ message: 'Authentication token required' });
+  }
+
+  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+    if (err) {
+      return res.status(403).json({ message: 'Invalid or expired token' });
+    }
+    req.user = user;
+    next();
+  });
+};
+
+// Admin middleware
+const isAdmin = (req, res, next) => {
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({ message: 'Admin access required' });
+  }
+  next();
+};
 
 app.use(express.json());
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
-  // Add CORS headers explicitly for the health endpoint
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  
   res.json({ status: 'ok', message: 'Server is running' });
 });
 
-app.use('/api/auth', authRoutes)
-app.use('/api/stocks', stockRoutes);
-app.use('/api/watchlist', watchlistRoutes);
+// Public routes
+app.use('/api/auth', authRoutes);
+
+// Protected routes
+app.use('/api/stocks', authenticateToken, stockRoutes);
+app.use('/api/watchlist', authenticateToken, watchlistRoutes);
+app.use('/api/transactions', authenticateToken, transactionRoutes);
+
+// Admin routes
+app.use('/api/admin', authenticateToken, isAdmin, (req, res) => {
+  res.json({ message: 'Admin access granted' });
+});
 
 const PORT = process.env.PORT || 5000;
 
@@ -129,7 +146,7 @@ const start = async () => {
     // Start periodic stock price updates
     stockPriceService.startPeriodicUpdates();
 
-    app.listen(PORT, () => {
+    app.listen(PORT, '0.0.0.0', () => {
       console.log(`Server is running on port ${PORT}`);
     });
   } catch (error) {

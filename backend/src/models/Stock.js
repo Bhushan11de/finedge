@@ -1,5 +1,5 @@
 const { DataTypes } = require('sequelize');
-const sequelize = require('../config/database');
+const sequelize = require('../config/sequelize');
 
 const Stock = sequelize.define('Stock', {
   id: {
@@ -13,27 +13,27 @@ const Stock = sequelize.define('Stock', {
   },
   ticker: {
     type: DataTypes.STRING,
-    allowNull: false
+    allowNull: false,
+    unique: true
   },
   shares: {
-    type: DataTypes.FLOAT,
+    type: DataTypes.INTEGER,
     allowNull: false,
     defaultValue: 0
   },
   buy_price: {
-    type: DataTypes.FLOAT,
+    type: DataTypes.DECIMAL(10, 2),
     allowNull: false,
-    defaultValue: 0
+    defaultValue: 0.00
   },
   current_price: {
-    type: DataTypes.FLOAT,
+    type: DataTypes.DECIMAL(10, 2),
     allowNull: false,
-    defaultValue: 0
+    defaultValue: 0.00
   },
   target_price: {
-    type: DataTypes.FLOAT,
-    allowNull: false,
-    defaultValue: 0
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull: true
   },
   is_in_watchlist: {
     type: DataTypes.BOOLEAN,
@@ -47,7 +47,7 @@ const Stock = sequelize.define('Stock', {
   }
 }, {
   timestamps: true,
-  tableName: 'stocks'
+  underscored: true
 });
 
 module.exports = Stock; 

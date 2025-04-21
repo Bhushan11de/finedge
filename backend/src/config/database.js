@@ -1,25 +1,30 @@
-const { Sequelize } = require('sequelize');
 require('dotenv').config();
 
-console.log('DATABASE_URL:', process.env.DATABASE_URL); // Debug log
-
-const sequelize = new Sequelize(process.env.DATABASE_URL, {
-  dialect: 'mysql',
-  logging: false,
-  dialectOptions: {
-    ssl: {
-      require: false,
-      rejectUnauthorized: false
+module.exports = {
+  development: {
+    username: 'admin',
+    password: 'Bhushan123',
+    database: 'portfolio_tracker',
+    host: 'database-1.c9iimq6egwnz.us-west-2.rds.amazonaws.com',
+    port: 3306,
+    dialect: 'mysql',
+    logging: console.log,
+    define: {
+      timestamps: true,
+      underscored: true
+    }
+  },
+  production: {
+    username: 'admin',
+    password: 'Bhushan123',
+    database: 'portfolio_tracker',
+    host: 'database-1.c9iimq6egwnz.us-west-2.rds.amazonaws.com',
+    port: 3306,
+    dialect: 'mysql',
+    logging: false,
+    define: {
+      timestamps: true,
+      underscored: true
     }
   }
-});
-
-sequelize.authenticate()
-  .then(() => {
-    console.log('✅ Database connection has been established successfully.');
-  })
-  .catch(err => {
-    console.error('❌ Unable to connect to the database:', err);
-  });
-
-module.exports = sequelize;
+};
